@@ -35,14 +35,22 @@ pipeline {
                 }
             }
         }
+
+        stage('Docker Build') {
+            steps {
+                sh 'docker build -t user-service:1.0 user-service/user-service'
+                sh 'docker build -t order-service:1.0 order-service/order-service'
+                sh 'docker build -t notification-service:1.0 notification-service'
+            }
+        }
     }
 
     post {
         success {
-            echo 'All microservices built successfully!'
+            echo 'Maven builds and Docker builds completed successfully!'
         }
         failure {
-            echo 'Build failed!'
+            echo 'Pipeline failed!'
         }
     }
 }

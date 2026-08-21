@@ -51,33 +51,78 @@ pipeline {
 
         stage('Docker Push') {
             steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-creds',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASSWORD'
-                )]) {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-creds',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
 
-                    sh 'echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin'
+                    sh '''
+                        echo "$DOCKER_PASSWORD" | docker login \
+                            -u "$DOCKER_USER" \
+                            --password-stdin
 
-                    sh 'docker image rm $DOCKER_USER/user-service:1.0 || true'
-                    sh 'docker image rm $DOCKER_USER/order-service:1.0 || true'
-                    sh 'docker image rm $DOCKER_USER/notification-service:1.0 || true'
+                        docker image rm "$DOCKER_USER/user-service:1.0" || true
+                        docker image rm "$DOCKER_USER/order-service:1.0" || true
+                        docker image rm "$DOCKER_USER/notification-service:1.0" || true
 
-                    sh 'docker tag user-service:1.0 $DOCKER_USER/user-service:1.0'
-                    sh 'docker tag order-service:1.0 $DOCKER_USER/order-service:1.0'
-                    sh 'docker tag notification-service:1.0 $DOCKER_USER/notification-service:1.0'
+                        docker tag user-service:1.0 \
+                            "$DOCKER_USER/user-service:1.0"
 
-                    sh 'docker push $DOCKER_USER/user-service:1.0'
-                    sh 'docker push $DOCKER_USER/order-service:1.0'
-                    sh 'docker push $DOCKER_USER/notification-service:1.0'
+                        docker tag order-service:1.0 \
+                            "$DOCKER_USER/order-service:1.0"
+
+                        docker tag notification-service:1.0 \
+                            "$DOCKER_USER/notification-service:1.0"
+
+                        docker push "$DOCKER_USER/user-service:1.0"
+                        docker push "$DOCKER_USER/order-service:1.0"
+                        docker push "$DOCKER_USER/notification-service:1.0"
+                    '''
                 }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh '''
+                    kubectl \
+                        --kubeconfig /var/jenkins_home/jenkins-kubeconfig.yaml \
+                        apply -f k8s/
+                '''
+            }
+        }
+
+        stage('Verify Kubernetes Deployment') {
+            steps {
+                sh '''
+                    echo "===== DEPLOYMENTS ====="
+
+                    kubectl \
+                        --kubeconfig /var/jenkins_home/jenkins-kubeconfig.yaml \
+                        get deployments
+
+                    echo "===== PODS ====="
+
+                    kubectl \
+                        --kubeconfig /var/jenkins_home/jenkins-kubeconfig.yaml \
+                        get pods
+
+                    echo "===== SERVICES ====="
+
+                    kubectl \
+                        --kubeconfig /var/jenkins_home/jenkins-kubeconfig.yaml \
+                        get services
+                '''
             }
         }
     }
 
     post {
         success {
-            echo 'Maven builds, Docker builds and Docker pushes completed successfully!'
+            echo 'Pipeline completed successfully: Maven → Docker Build → Docker Push → Kubernetes Deploy → Verification!'
         }
 
         failure {

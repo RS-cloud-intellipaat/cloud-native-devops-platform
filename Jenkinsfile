@@ -50,24 +50,32 @@ pipeline {
         }
 
         stage('Docker Push') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-creds',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASSWORD'
-                )]) {
+    steps {
+        withCredentials([usernamePassword(
+            credentialsId: 'dockerhub-creds',
+            usernameVariable: 'DOCKER_USER',
+            passwordVariable: 'DOCKER_PASSWORD'
+        )]) {
 
-                    sh 'echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin'
+            sh 'echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin'
 
-                    sh 'docker tag user-service:1.0 $DOCKER_USER/user-service:1.0'
-                    sh 'docker tag order-service:1.0 $DOCKER_USER/order-service:1.0'
-                    sh 'docker tag notification-service:1.0 $DOCKER_USER/notification-service:1.0'
+            // Remove existing local Docker Hub tags
+            sh 'docker image rm $DOCKER_USER/user-service:1.0 || true'
+            sh 'docker image rm $DOCKER_USER/order-service:1.0 || true'
+            sh 'docker image rm $DOCKER_USER/notification-service:1.0 || true'
 
-                    sh 'docker push $DOCKER_USER/user-service:1.0'
-                    sh 'docker push $DOCKER_USER/order-service:1.0'
-                    sh 'docker push $DOCKER_USER/notification-service:1.0'
-                }
-            }
+            // Create Docker Hub tags
+            sh 'docker tag user-service:1.0 $DOCKER_USER/user-service:1.0'
+            sh 'docker tag order-service:1.0 $DOCKER_USER/order-service:1.0'
+            sh 'docker tag notification-service:1.0 $DOCKER_USER/notification-service:1.0'
+
+            // Push images
+            sh 'docker push $DOCKER_USER/user-service:1.0'
+            sh 'docker push $DOCKER_USER/order-service:1.0'
+            sh 'docker push $DOCKER_USER/notification-service:1.0'
+        }
+    }
+}
         }
     }
 

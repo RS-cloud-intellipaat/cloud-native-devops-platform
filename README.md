@@ -505,3 +505,294 @@ Branch:
 
 Script Path:
 Jenkinsfile
+
+The Jenkins job should have the Docker Hub credential:
+
+dockerhub-creds
+
+Docker Hub Credential
+
+Create the Jenkins credential:
+
+Credentials
+  → System
+    → Global credentials
+      → Add Credentials
+
+Use:
+
+Kind: Username with password
+ID: dockerhub-creds
+Username: <Docker Hub username>
+Password: <Docker Hub access token/password>
+
+For production usage, prefer a Docker Hub access token instead of a normal account password.
+
+Running the Pipeline
+
+After configuring the Jenkins job:
+
+Open Jenkins.
+
+Open cloud-native-devops-pipeline.
+
+Click Build Now.
+
+Open the build.
+
+Open Console Output.
+
+A successful pipeline should progress through:
+
+Checkout
+Build User Service
+Build Order Service
+Build Notification Service
+Docker Build
+Docker Push
+Deploy to Kubernetes
+Verify Kubernetes Deployment
+
+The final message is expected to indicate successful completion of the CI/CD flow.
+
+Useful Kubernetes Commands
+
+Check all resources:
+
+kubectl get all
+
+Check pods:
+
+kubectl get pods -o wide
+
+Check deployments:
+
+kubectl get deployments
+
+Check services:
+
+kubectl get services
+
+Describe a pod:
+
+kubectl describe pod <pod-name>
+
+View pod logs:
+
+kubectl logs <pod-name>
+
+Restart a deployment:
+
+kubectl rollout restart deployment user-service
+
+Check rollout status:
+
+kubectl rollout status deployment/user-service
+
+Delete the application resources:
+
+kubectl delete -f k8s/
+
+Troubleshooting
+
+Jenkins is not accessible
+
+Check the container:
+
+docker ps -a --filter "name=jenkins"
+
+Check Jenkins logs:
+
+docker logs jenkins --tail 100
+
+Docker command is not available inside Jenkins
+
+Check:
+
+docker exec jenkins docker --version
+
+If Docker is missing, make sure Jenkins is running from the custom image:
+
+jenkins-with-docker
+
+and that the Docker socket is mounted:
+
+-v /var/run/docker.sock:/var/run/docker.sock
+
+kubectl has no context inside Jenkins
+
+Check:
+
+docker exec jenkins kubectl config get-contexts
+
+Use the Jenkins kubeconfig explicitly:
+
+docker exec jenkins kubectl `
+  --kubeconfig /var/jenkins_home/jenkins-kubeconfig.yaml `
+  get nodes
+
+Jenkins cannot connect to Kubernetes
+
+Check the kubeconfig:
+
+docker exec jenkins kubectl `
+  --kubeconfig /var/jenkins_home/jenkins-kubeconfig.yaml `
+  cluster-info
+
+Make sure the kubeconfig is accessible inside the container and that Minikube is running.
+
+Check Minikube
+
+minikube status
+
+If stopped:
+
+minikube start --driver=docker
+
+Pipeline fails during Git checkout
+
+Verify the repository:
+
+https://github.com/RS-cloud-intellipaat/cloud-native-devops-platform.git
+
+and ensure the Jenkins job is configured to use the master branch and Jenkinsfile.
+
+Important Image/Minikube Note
+
+The Kubernetes deployment manifests currently use local image names such as:
+
+user-service:1.0
+order-service:1.0
+notification-service:1.0
+
+The User Service deployment currently uses:
+
+imagePullPolicy: Never
+
+while the Order and Notification deployments use:
+
+imagePullPolicy: IfNotPresent
+
+This is suitable for a local Minikube workflow where the images are available to the Kubernetes runtime.
+
+If the project is moved to a remote Kubernetes cluster, the deployment manifests should be updated to use registry-qualified image names, for example:
+
+rakeshs53350/user-service:1.0
+rakeshs53350/order-service:1.0
+rakeshs53350/notification-service:1.0
+
+and the cluster must be able to pull those images from Docker Hub.
+
+Security Notes
+
+Do not commit any of the following to Git:
+
+Docker Hub passwords
+
+Docker Hub access tokens
+
+Jenkins credentials
+
+Kubernetes private keys
+
+Personal kubeconfig files
+
+Cloud provider access keys
+
+API tokens
+
+The Jenkins kubeconfig used for local development should be treated as a credential and should not be committed to the repository.
+
+DevOps Skills Demonstrated
+
+This project demonstrates practical experience with:
+
+Git and GitHub
+
+Git branching and commits
+
+Maven builds
+
+Spring Boot microservices
+
+Docker image creation
+
+Docker image tagging
+
+Docker Hub
+
+Jenkins
+
+Jenkins Declarative Pipeline
+
+Jenkins credentials
+
+Docker-in-Jenkins
+
+Kubernetes Deployments
+
+Kubernetes Services
+
+NodePort
+
+Minikube
+
+kubectl
+
+Kubernetes rollout verification
+
+CI/CD automation
+
+CI/CD Flow Summary
+
+Developer
+   │
+   ▼
+GitHub Repository
+   │
+   ▼
+Jenkins
+   │
+   ├── Checkout source
+   │
+   ├── Maven package
+   │      ├── User Service
+   │      ├── Order Service
+   │      └── Notification Service
+   │
+   ├── Build Docker images
+   │
+   ├── Login to Docker Hub
+   │
+   ├── Push Docker images
+   │
+   ├── Apply Kubernetes manifests
+   │
+   └── Verify deployments/pods/services
+   │
+   ▼
+Minikube / Kubernetes
+   │
+   ├── User Service
+   ├── Order Service
+   └── Notification Service
+
+Project Status
+
+The repository currently contains the microservices, Docker configuration, Kubernetes manifests, Jenkins pipeline, and local Minikube deployment workflow.
+
+The Jenkins pipeline has been configured to perform:
+
+Maven Build → Docker Build → Docker Push → Kubernetes Deploy → Verification
+
+Repository
+
+GitHub:
+
+https://github.com/RS-cloud-intellipaat/cloud-native-devops-platform
+
+Author
+
+RS-cloud-intellipaat
+
+Cloud-native DevOps project demonstrating containerization, CI/CD automation, and Kubernetes deployment.

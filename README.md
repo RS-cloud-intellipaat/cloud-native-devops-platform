@@ -1,1414 +1,483 @@
-**# ☁️ Cloud-Native DevOps Platform**
+<div align="center">
+
+# ☁️ Cloud-Native DevOps Platform
+
+### Spring Boot • Docker • Jenkins • Kubernetes • Minikube
+
+A production-style DevOps project demonstrating how multiple Spring Boot microservices are **built, containerized, pushed to Docker Hub, and deployed to Kubernetes through Jenkins CI/CD**.
+
+<br/>
+
+![Java](https://img.shields.io/badge/Java-17-orange?style=for-the-badge&logo=openjdk)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-brightgreen?style=for-the-badge&logo=springboot)
+![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED?style=for-the-badge&logo=docker)
+![Jenkins](https://img.shields.io/badge/Jenkins-CI%2FCD-D24939?style=for-the-badge&logo=jenkins)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-Orchestration-326CE5?style=for-the-badge&logo=kubernetes)
+![Minikube](https://img.shields.io/badge/Minikube-Local%20Cluster-1E88E5?style=for-the-badge&logo=kubernetes)
+
+</div>
+
+---
+
+## 🚀 Project Overview
+
+This project implements a small **cloud-native microservices platform** with an end-to-end DevOps workflow.
+
+The platform contains three independent Spring Boot services:
+
+| Service | Purpose | Port |
+|---|---|---:|
+| 👤 **User Service** | User-related REST APIs | `8081` |
+| 📦 **Order Service** | Order-related REST APIs | `8082` |
+| 🔔 **Notification Service** | Notification-related REST APIs | `8083` |
+
+### CI/CD workflow
+
+```text
+Developer
+   │
+   ▼
+GitHub
+   │
+   ▼
+Jenkins
+   │
+   ├── Checkout
+   ├── Maven Build
+   ├── Docker Build
+   ├── Docker Login
+   ├── Docker Push
+   │
+   ▼
+Docker Hub
+   │
+   ▼
+Kubernetes / Minikube
+   │
+   ├── User Service
+   ├── Order Service
+   └── Notification Service
+```
+
+---
+
+## 🏗️ Architecture
+
+```text
+                         ┌─────────────────────┐
+                         │       GitHub        │
+                         │  Source Repository  │
+                         └──────────┬──────────┘
+                                    │
+                                    ▼
+                         ┌─────────────────────┐
+                         │      Jenkins       │
+                         │       CI/CD        │
+                         └──────────┬──────────┘
+                                    │
+                    ┌───────────────┼───────────────┐
+                    │               │               │
+                    ▼               ▼               ▼
+              Maven Build     Docker Build     Docker Push
+                    │               │               │
+                    └───────────────┼───────────────┘
+                                    │
+                                    ▼
+                         ┌─────────────────────┐
+                         │     Docker Hub      │
+                         │ Container Registry  │
+                         └──────────┬──────────┘
+                                    │
+                                    ▼
+                         ┌─────────────────────┐
+                         │ Kubernetes /         │
+                         │ Minikube Cluster     │
+                         └──────────┬──────────┘
+                                    │
+              ┌─────────────────────┼─────────────────────┐
+              │                     │                     │
+              ▼                     ▼                     ▼
+        User Service         Order Service        Notification
+        NodePort 30081       NodePort 30082       NodePort 30083
+```
+
+---
+
+## 📁 Repository Structure
+
+```text
+cloud-native-devops-platform/
+│
+├── .gitignore
+├── README.md
+├── Jenkinsfile
+├── Dockerfile.jenkins
+├── compose.yaml
+│
+├── k8s/
+│   ├── user-deployment.yaml
+│   ├── user-service.yaml
+│   ├── order-deployment.yaml
+│   ├── order-service.yaml
+│   ├── notification-deployment.yaml
+│   └── notification-service.yaml
+│
+├── user-service/
+│   └── user-service/
+│       ├── src/
+│       ├── pom.xml
+│       ├── mvnw
+│       └── Dockerfile
+│
+├── order-service/
+│   └── order-service/
+│       ├── src/
+│       ├── pom.xml
+│       ├── mvnw
+│       └── Dockerfile
+│
+└── notification-service/
+    ├── src/
+    ├── pom.xml
+    ├── mvnw
+    └── Dockerfile
+```
+
+> **Note:** `jenkins-kubeconfig.yaml` is intentionally excluded from GitHub because it contains Kubernetes authentication material.
+
+---
+
+## 🧩 Microservices
+
+### 👤 User Service
+
+Spring Boot application responsible for user-related functionality.
+
+- Maven project
+- Dockerized
+- Kubernetes Deployment
+- Kubernetes NodePort Service
+- Exposed through NodePort `30081`
+
+### 📦 Order Service
+
+Spring Boot application responsible for order-related functionality.
+
+- Maven project
+- Dockerized
+- Kubernetes Deployment
+- Kubernetes NodePort Service
+- Exposed through NodePort `30082`
+
+### 🔔 Notification Service
+
+Spring Boot application responsible for notification functionality.
+
+- Maven project
+- Dockerized
+- Kubernetes Deployment
+- Kubernetes NodePort Service
+- Exposed through NodePort `30083`
 
+---
 
+## 🐳 Docker
 
-**<p align="center">**
+Each microservice has its own Docker image.
 
-&#x20; **<b>Spring Boot Microservices • Docker • Jenkins CI/CD • Kubernetes • Minikube</b>**
+```bash
+docker build -t user-service:1.0 user-service/user-service
+docker build -t order-service:1.0 order-service/order-service
+docker build -t notification-service:1.0 notification-service
+```
 
-**</p>**
+Images are tagged for Docker Hub:
 
+```text
+<dockerhub-user>/user-service:1.0
+<dockerhub-user>/order-service:1.0
+<dockerhub-user>/notification-service:1.0
+```
 
+---
 
-**<p align="center">**
+## 🔄 Jenkins CI/CD Pipeline
 
-&#x20; **A production-style DevOps project demonstrating how multiple Spring Boot microservices are**
+The Jenkins pipeline automates the application delivery process.
 
-&#x20; **built, containerized, pushed to Docker Hub, and deployed to Kubernetes through Jenkins.**
+### Pipeline stages
 
-**</p>**
+```text
+┌──────────┐
+│ Checkout │
+└────┬─────┘
+     ▼
+┌───────────────┐
+│ Maven Build   │
+└────┬──────────┘
+     ▼
+┌───────────────┐
+│ Docker Build  │
+└────┬──────────┘
+     ▼
+┌───────────────┐
+│ Docker Push   │
+└────┬──────────┘
+     ▼
+┌─────────────────────┐
+│ Kubernetes Deploy   │
+└─────────────────────┘
+```
 
+Jenkins uses the repository `Jenkinsfile` to execute the pipeline.
 
+The project also includes `Dockerfile.jenkins`, which creates a Jenkins image containing Docker CLI and `kubectl`.
 
-**---**
+---
 
+## ☸️ Kubernetes Deployment
 
+The Kubernetes manifests are stored under:
 
-**## 🚀 Project Overview**
+```text
+k8s/
+```
 
+Apply the deployments:
 
+```bash
+kubectl apply -f k8s/user-deployment.yaml
+kubectl apply -f k8s/user-service.yaml
 
-**This project implements a small \*\*cloud-native microservices platform\*\* and an automated CI/CD workflow.**
+kubectl apply -f k8s/order-deployment.yaml
+kubectl apply -f k8s/order-service.yaml
 
+kubectl apply -f k8s/notification-deployment.yaml
+kubectl apply -f k8s/notification-service.yaml
+```
 
+Check deployments:
 
-**The platform contains three independent Spring Boot services:**
+```bash
+kubectl get deployments
+```
 
+Check pods:
 
+```bash
+kubectl get pods
+```
 
-**- 👤 \*\*User Service\*\***
+Check services:
 
-**- 📦 \*\*Order Service\*\***
+```bash
+kubectl get services
+```
 
-**- 🔔 \*\*Notification Service\*\***
+---
 
+## 🖥️ Minikube
 
+Start the local Kubernetes cluster:
 
-**The complete delivery workflow is automated with Jenkins:**
+```bash
+minikube start --driver=docker
+```
 
+Check cluster status:
 
+```bash
+minikube status
+```
 
-**```text**
+Check nodes:
 
-&#x20;                   **┌─────────────────┐**
+```bash
+kubectl get nodes
+```
 
-&#x20;                   **│     GitHub      │**
+Get the Minikube IP:
 
-&#x20;                   **│   Source Code   │**
+```bash
+minikube ip
+```
 
-&#x20;                   **└────────┬────────┘**
+Open a NodePort service:
 
-&#x20;                            **│**
+```bash
+minikube service user-service
+```
 
-&#x20;                            **▼**
+or:
 
-&#x20;                   **┌─────────────────┐**
+```bash
+minikube service order-service
+```
 
-&#x20;                   **│     Jenkins     │**
+or:
 
-&#x20;                   **│     CI / CD     │**
+```bash
+minikube service notification-service
+```
 
-&#x20;                   **└────────┬────────┘**
+---
 
-&#x20;                            **│**
+## 🔐 Jenkins → Kubernetes Integration
 
-&#x20;             **┌──────────────┼──────────────┐**
+Jenkins is configured to communicate with the Minikube Kubernetes API using a dedicated kubeconfig.
 
-&#x20;             **▼              ▼              ▼**
+The kubeconfig is copied into the Jenkins container and used with:
 
-&#x20;       **Maven Build     Docker Build    Docker Push**
+```bash
+kubectl --kubeconfig /var/jenkins_home/jenkins-kubeconfig.yaml get deployments
+```
 
-&#x20;             **│              │              │**
+Example verification:
 
-&#x20;             **└──────────────┼──────────────┘**
+```bash
+kubectl --kubeconfig /var/jenkins_home/jenkins-kubeconfig.yaml get services
+```
 
-&#x20;                            **▼**
+### Security
 
-&#x20;                   **┌─────────────────┐**
+The following file must **never** be committed to GitHub:
 
-&#x20;                   **│     Docker Hub  │**
+```text
+jenkins-kubeconfig.yaml
+```
 
-&#x20;                   **└────────┬────────┘**
+It is included in `.gitignore`.
 
-&#x20;                            **│**
+---
 
-&#x20;                            **▼**
+## 📦 Docker Hub Images
 
-&#x20;                   **┌─────────────────┐**
+The pipeline publishes the following images:
 
-&#x20;                   **│ Kubernetes /    │**
+| Image | Tag |
+|---|---|
+| `rakeshs53350/user-service` | `1.0` |
+| `rakeshs53350/order-service` | `1.0` |
+| `rakeshs53350/notification-service` | `1.0` |
 
-&#x20;                   **│    Minikube     │**
+---
 
-&#x20;                   **└────────┬────────┘**
+## 🛠️ Technology Stack
 
-&#x20;                            **│**
+| Category | Technology |
+|---|---|
+| Language | Java 17 |
+| Framework | Spring Boot |
+| Build | Maven |
+| Containerization | Docker |
+| CI/CD | Jenkins |
+| Registry | Docker Hub |
+| Orchestration | Kubernetes |
+| Local Kubernetes | Minikube |
+| Source Control | Git / GitHub |
+| Configuration | YAML |
+| Platform | Windows + Docker Desktop |
 
-&#x20;            **┌───────────────┼───────────────┐**
+---
 
-&#x20;            **▼               ▼               ▼**
+## 🎯 DevOps Skills Demonstrated
 
-&#x20;      **User Service    Order Service   Notification**
+This project demonstrates practical experience with:
 
-&#x20;                                          **Service**
+- ✅ Git and GitHub
+- ✅ Git branching and commits
+- ✅ Maven builds
+- ✅ Spring Boot microservices
+- ✅ Docker image creation
+- ✅ Docker Hub
+- ✅ Jenkins pipelines
+- ✅ Jenkins credentials
+- ✅ CI/CD automation
+- ✅ Kubernetes Deployments
+- ✅ Kubernetes Services
+- ✅ NodePort
+- ✅ Minikube
+- ✅ `kubectl`
+- ✅ Jenkins-to-Kubernetes integration
+- ✅ Containerized Jenkins
+- ✅ Kubernetes configuration management
 
-**```**
+---
 
+## 🧪 Useful Commands
 
+### Git
 
-**---**
+```bash
+git status
+git add .
+git commit -m "message"
+git push origin master
+```
 
+### Docker
 
+```bash
+docker ps
+docker images
+docker build -t <image>:<tag> .
+docker push <image>:<tag>
+```
 
-**## 🧰 Technology Stack**
+### Kubernetes
 
+```bash
+kubectl get nodes
+kubectl get pods
+kubectl get deployments
+kubectl get services
+kubectl describe pod <pod-name>
+kubectl logs <pod-name>
+```
 
+### Minikube
 
-**| Area | Technology |**
+```bash
+minikube status
+minikube ip
+minikube service list
+```
 
-**|---|---|**
+---
 
-**| Application | Java 17 |**
+## 🚧 Future Enhancements
 
-**| Framework | Spring Boot |**
+Planned improvements include:
 
-**| Build | Maven / Maven Wrapper |**
+- [ ] Add automated unit tests to the Jenkins pipeline
+- [ ] Add SonarQube code-quality analysis
+- [ ] Add Trivy container security scanning
+- [ ] Add Kubernetes rolling deployments
+- [ ] Add Ingress
+- [ ] Add Helm charts
+- [ ] Add Prometheus and Grafana monitoring
+- [ ] Add GitHub webhook-based automatic builds
+- [ ] Add AWS EKS deployment
+- [ ] Add Terraform infrastructure provisioning
 
-**| Source Control | Git \& GitHub |**
+---
 
-**| Containerization | Docker |**
+## 👨‍💻 Author
 
-**| Container Registry | Docker Hub |**
+**Rakesh**
 
-**| CI/CD | Jenkins |**
+Cloud / DevOps Engineer
 
-**| Orchestration | Kubernetes |**
+### Core focus
 
-**| Local Cluster | Minikube |**
+`AWS` • `Docker` • `Kubernetes` • `Jenkins` • `Terraform` • `CI/CD` • `Linux` • `Git`
 
-**| Kubernetes CLI | kubectl |**
+---
 
-**| Local Containers | Docker Compose |**
+<div align="center">
 
+### ⭐ If you find this project useful, consider giving it a star!
 
+**Built as a hands-on Cloud-Native DevOps portfolio project.**
 
-**---**
-
-
-
-**## 📁 Repository Structure**
-
-
-
-**```text**
-
-**cloud-native-devops-platform/**
-
-**│**
-
-**├── 📂 k8s/**
-
-**│   ├── user-deployment.yaml**
-
-**│   ├── user-service.yaml**
-
-**│   ├── order-deployment.yaml**
-
-**│   ├── order-service.yaml**
-
-**│   ├── notification-deployment.yaml**
-
-**│   └── notification-service.yaml**
-
-**│**
-
-**├── 📂 user-service/**
-
-**│   └── 📂 user-service/**
-
-**│       ├── 📂 src/**
-
-**│       ├── pom.xml**
-
-**│       ├── mvnw**
-
-**│       └── Dockerfile**
-
-**│**
-
-**├── 📂 order-service/**
-
-**│   └── 📂 order-service/**
-
-**│       ├── 📂 src/**
-
-**│       ├── pom.xml**
-
-**│       ├── mvnw**
-
-**│       └── Dockerfile**
-
-**│**
-
-**├── 📂 notification-service/**
-
-**│   ├── 📂 src/**
-
-**│   ├── pom.xml**
-
-**│   ├── mvnw**
-
-**│   └── Dockerfile**
-
-**│**
-
-**├── 🐳 Dockerfile.jenkins**
-
-**├── 🔄 Jenkinsfile**
-
-**├── 🐳 compose.yaml**
-
-**└── 📖 README.md**
-
-**```**
-
-
-
-**---**
-
-
-
-**## 🧩 Microservices**
-
-
-
-**### 👤 User Service**
-
-
-
-**Spring Boot microservice responsible for user-related functionality.**
-
-
-
-**- Application port: \*\*8081\*\***
-
-**- Docker image: `user-service:1.0`**
-
-**- Kubernetes NodePort: \*\*30081\*\***
-
-
-
-**### 📦 Order Service**
-
-
-
-**Spring Boot microservice responsible for order-related functionality.**
-
-
-
-**- Application port: \*\*8082\*\***
-
-**- Docker image: `order-service:1.0`**
-
-**- Kubernetes NodePort: \*\*30082\*\***
-
-
-
-**### 🔔 Notification Service**
-
-
-
-**Spring Boot microservice responsible for notification-related functionality.**
-
-
-
-**- Application port: \*\*8083\*\***
-
-**- Docker image: `notification-service:1.0`**
-
-**- Kubernetes NodePort: \*\*30083\*\***
-
-
-
-**---**
-
-
-
-**## 🔄 CI/CD Pipeline**
-
-
-
-**The Jenkins pipeline follows this workflow:**
-
-
-
-**```text**
-
-**1. Checkout**
-
-&#x20;     **↓**
-
-**2. Build User Service**
-
-&#x20;     **↓**
-
-**3. Build Order Service**
-
-&#x20;     **↓**
-
-**4. Build Notification Service**
-
-&#x20;     **↓**
-
-**5. Docker Build**
-
-&#x20;     **↓**
-
-**6. Docker Push**
-
-&#x20;     **↓**
-
-**7. Deploy to Kubernetes**
-
-&#x20;     **↓**
-
-**8. Verify Kubernetes Deployment**
-
-**```**
-
-
-
-**### Pipeline stages**
-
-
-
-**#### 1️⃣ Checkout**
-
-
-
-**Jenkins cleans the workspace and checks out the source code from GitHub.**
-
-
-
-**```groovy**
-
-**options {**
-
-&#x20;   **skipDefaultCheckout(true)**
-
-**}**
-
-**```**
-
-
-
-**```groovy**
-
-**deleteDir()**
-
-**checkout scm**
-
-**```**
-
-
-
-**#### 2️⃣ Maven Build**
-
-
-
-**Each microservice is built independently using its Maven Wrapper.**
-
-
-
-**```bash**
-
-**./mvnw clean package -DskipTests**
-
-**```**
-
-
-
-**#### 3️⃣ Docker Build**
-
-
-
-**Docker images are created for all three services:**
-
-
-
-**```bash**
-
-**docker build -t user-service:1.0 user-service/user-service**
-
-**docker build -t order-service:1.0 order-service/order-service**
-
-**docker build -t notification-service:1.0 notification-service**
-
-**```**
-
-
-
-**#### 4️⃣ Docker Push**
-
-
-
-**Jenkins authenticates to Docker Hub using the Jenkins credential:**
-
-
-
-**```text**
-
-**dockerhub-creds**
-
-**```**
-
-
-
-**Images are tagged and pushed as:**
-
-
-
-**```text**
-
-**<DOCKER\_USER>/user-service:1.0**
-
-**<DOCKER\_USER>/order-service:1.0**
-
-**<DOCKER\_USER>/notification-service:1.0**
-
-**```**
-
-
-
-**#### 5️⃣ Kubernetes Deployment**
-
-
-
-**The Kubernetes manifests under `k8s/` are applied:**
-
-
-
-**```bash**
-
-**kubectl apply -f k8s/**
-
-**```**
-
-
-
-**#### 6️⃣ Verification**
-
-
-
-**Jenkins verifies the resulting Kubernetes resources:**
-
-
-
-**```bash**
-
-**kubectl get deployments**
-
-**kubectl get pods**
-
-**kubectl get services**
-
-**```**
-
-
-
-**---**
-
-
-
-**## 🐳 Docker**
-
-
-
-**### Build images manually**
-
-
-
-**```powershell**
-
-**docker build -t user-service:1.0 user-service/user-service**
-
-**docker build -t order-service:1.0 order-service/order-service**
-
-**docker build -t notification-service:1.0 notification-service**
-
-**```**
-
-
-
-**Check images:**
-
-
-
-**```powershell**
-
-**docker images**
-
-**```**
-
-
-
-**### Docker Compose**
-
-
-
-**The project also contains `compose.yaml` for local container-based execution.**
-
-
-
-**Start:**
-
-
-
-**```powershell**
-
-**docker compose up -d**
-
-**```**
-
-
-
-**Check:**
-
-
-
-**```powershell**
-
-**docker compose ps**
-
-**```**
-
-
-
-**Stop:**
-
-
-
-**```powershell**
-
-**docker compose down**
-
-**```**
-
-
-
-**---**
-
-
-
-**## ☸️ Kubernetes \& Minikube**
-
-
-
-**### Start Minikube**
-
-
-
-**```powershell**
-
-**minikube start --driver=docker**
-
-**```**
-
-
-
-**Check status:**
-
-
-
-**```powershell**
-
-**minikube status**
-
-**```**
-
-
-
-**Check cluster:**
-
-
-
-**```powershell**
-
-**kubectl get nodes**
-
-**```**
-
-
-
-**### Deploy the platform**
-
-
-
-**```powershell**
-
-**kubectl apply -f k8s/**
-
-**```**
-
-
-
-**### Verify deployments**
-
-
-
-**```powershell**
-
-**kubectl get deployments**
-
-**```**
-
-
-
-**### Verify pods**
-
-
-
-**```powershell**
-
-**kubectl get pods**
-
-**```**
-
-
-
-**### Verify services**
-
-
-
-**```powershell**
-
-**kubectl get services**
-
-**```**
-
-
-
-**---**
-
-
-
-**## 🌐 Kubernetes Services**
-
-
-
-**The application services are exposed through Kubernetes `NodePort`.**
-
-
-
-**| Service | Application Port | NodePort |**
-
-**|---|---:|---:|**
-
-**| User Service | 8081 | 30081 |**
-
-**| Order Service | 8082 | 30082 |**
-
-**| Notification Service | 8083 | 30083 |**
-
-
-
-**Get the Minikube IP:**
-
-
-
-**```powershell**
-
-**minikube ip**
-
-**```**
-
-
-
-**Alternatively, ask Minikube for the service URL:**
-
-
-
-**```powershell**
-
-**minikube service user-service --url**
-
-**minikube service order-service --url**
-
-**minikube service notification-service --url**
-
-**```**
-
-
-
-**---**
-
-
-
-**## 🏗️ Jenkins Setup**
-
-
-
-**The project includes `Dockerfile.jenkins`, which creates a custom Jenkins image containing the tools required for the CI/CD pipeline.**
-
-
-
-**### Build Jenkins image**
-
-
-
-**```powershell**
-
-**docker build -t jenkins-with-docker -f Dockerfile.jenkins .**
-
-**```**
-
-
-
-**### Run Jenkins**
-
-
-
-**```powershell**
-
-**docker run -d `**
-
-&#x20; **--name jenkins `**
-
-&#x20; **--network jenkins `**
-
-&#x20; **-p 8087:8080 `**
-
-&#x20; **-p 50000:50000 `**
-
-&#x20; **-v jenkins\_home:/var/jenkins\_home `**
-
-&#x20; **-v /var/run/docker.sock:/var/run/docker.sock `**
-
-&#x20; **jenkins-with-docker**
-
-**```**
-
-
-
-**Open Jenkins:**
-
-
-
-**```text**
-
-**http://localhost:8087**
-
-**```**
-
-
-
-**### Verify Docker inside Jenkins**
-
-
-
-**```powershell**
-
-**docker exec jenkins docker --version**
-
-**```**
-
-
-
-**### Verify kubectl inside Jenkins**
-
-
-
-**```powershell**
-
-**docker exec jenkins kubectl version --client**
-
-**```**
-
-
-
-**---**
-
-
-
-**## 🔐 Jenkins → Kubernetes Connectivity**
-
-
-
-**Jenkins uses a dedicated kubeconfig:**
-
-
-
-**```text**
-
-**/var/jenkins\_home/jenkins-kubeconfig.yaml**
-
-**```**
-
-
-
-**The Kubernetes commands in the pipeline use this configuration to communicate with the Minikube cluster.**
-
-
-
-**Test connectivity:**
-
-
-
-**```powershell**
-
-**docker exec jenkins kubectl `**
-
-&#x20; **--kubeconfig /var/jenkins\_home/jenkins-kubeconfig.yaml `**
-
-&#x20; **get nodes**
-
-**```**
-
-
-
-**Expected:**
-
-
-
-**```text**
-
-**NAME       STATUS   ROLES**
-
-**minikube   Ready    control-plane**
-
-**```**
-
-
-
-**---**
-
-
-
-**## 🔑 Jenkins Credentials**
-
-
-
-**Create a Jenkins credential with:**
-
-
-
-**```text**
-
-**Kind: Username with password**
-
-**ID:   dockerhub-creds**
-
-**```**
-
-
-
-**Use a \*\*Docker Hub access token\*\* rather than storing a normal account password where possible.**
-
-
-
-**The pipeline accesses the credential securely:**
-
-
-
-**```groovy**
-
-**withCredentials(\[usernamePassword(**
-
-&#x20;   **credentialsId: 'dockerhub-creds',**
-
-&#x20;   **usernameVariable: 'DOCKER\_USER',**
-
-&#x20;   **passwordVariable: 'DOCKER\_PASSWORD'**
-
-**)])**
-
-**```**
-
-
-
-**---**
-
-
-
-**## ⚙️ Jenkins Job Configuration**
-
-
-
-**Create a Jenkins \*\*Pipeline\*\* job:**
-
-
-
-**```text**
-
-**Job Name:**
-
-**cloud-native-devops-pipeline**
-
-**```**
-
-
-
-**Configure:**
-
-
-
-**```text**
-
-**Definition:**
-
-**Pipeline script from SCM**
-
-
-
-**SCM:**
-
-**Git**
-
-
-
-**Repository:**
-
-**https://github.com/RS-cloud-intellipaat/cloud-native-devops-platform.git**
-
-
-
-**Branch:**
-
-**\*/master**
-
-
-
-**Script Path:**
-
-**Jenkinsfile**
-
-**```**
-
-
-
-**Then select:**
-
-
-
-**```text**
-
-**Build Now**
-
-**```**
-
-
-
-**and inspect:**
-
-
-
-**```text**
-
-**Build → Console Output**
-
-**```**
-
-
-
-**---**
-
-
-
-**## 🧪 Useful Commands**
-
-
-
-**### Git**
-
-
-
-**```powershell**
-
-**git status**
-
-**git log --oneline -5**
-
-**git add .**
-
-**git commit -m "your message"**
-
-**git push origin master**
-
-**```**
-
-
-
-**### Docker**
-
-
-
-**```powershell**
-
-**docker ps**
-
-**docker ps -a**
-
-**docker images**
-
-**docker logs jenkins --tail 100**
-
-**```**
-
-
-
-**### Kubernetes**
-
-
-
-**```powershell**
-
-**kubectl get nodes**
-
-**kubectl get pods**
-
-**kubectl get deployments**
-
-**kubectl get services**
-
-**kubectl get all**
-
-**```**
-
-
-
-**### Minikube**
-
-
-
-**```powershell**
-
-**minikube status**
-
-**minikube ip**
-
-**minikube service list**
-
-**```**
-
-
-
-**---**
-
-
-
-**## 🛠️ Troubleshooting**
-
-
-
-**### Jenkins does not open**
-
-
-
-**Check:**
-
-
-
-**```powershell**
-
-**docker ps -a --filter "name=jenkins"**
-
-**```**
-
-
-
-**View logs:**
-
-
-
-**```powershell**
-
-**docker logs jenkins --tail 100**
-
-**```**
-
-
-
-**### Docker is unavailable inside Jenkins**
-
-
-
-**Check:**
-
-
-
-**```powershell**
-
-**docker exec jenkins docker --version**
-
-**```**
-
-
-
-**Make sure the Jenkins container was started with:**
-
-
-
-**```text**
-
-**-v /var/run/docker.sock:/var/run/docker.sock**
-
-**```**
-
-
-
-**### kubectl has no context**
-
-
-
-**Check:**
-
-
-
-**```powershell**
-
-**docker exec jenkins kubectl config get-contexts**
-
-**```**
-
-
-
-**Use the dedicated kubeconfig:**
-
-
-
-**```powershell**
-
-**docker exec jenkins kubectl `**
-
-&#x20; **--kubeconfig /var/jenkins\_home/jenkins-kubeconfig.yaml `**
-
-&#x20; **get nodes**
-
-**```**
-
-
-
-**### Minikube is stopped**
-
-
-
-**```powershell**
-
-**minikube status**
-
-**```**
-
-
-
-**Start it:**
-
-
-
-**```powershell**
-
-**minikube start --driver=docker**
-
-**```**
-
-
-
-**---**
-
-
-
-**## 🔒 Security**
-
-
-
-**Do \*\*not\*\* commit these to GitHub:**
-
-
-
-**- ❌ Docker Hub passwords**
-
-**- ❌ Docker Hub access tokens**
-
-**- ❌ Jenkins credentials**
-
-**- ❌ Kubernetes private keys**
-
-**- ❌ Personal kubeconfig files**
-
-**- ❌ Cloud access keys**
-
-**- ❌ API tokens**
-
-
-
-**Keep development credentials outside source control.**
-
-
-
-**---**
-
-
-
-**## 🎯 DevOps Skills Demonstrated**
-
-
-
-**This project demonstrates hands-on experience with:**
-
-
-
-**- ✅ Git \& GitHub**
-
-**- ✅ Spring Boot microservices**
-
-**- ✅ Maven**
-
-**- ✅ Docker**
-
-**- ✅ Docker Hub**
-
-**- ✅ Jenkins CI/CD**
-
-**- ✅ Jenkins Declarative Pipeline**
-
-**- ✅ Jenkins Credentials**
-
-**- ✅ Docker-in-Jenkins**
-
-**- ✅ Kubernetes**
-
-**- ✅ Minikube**
-
-**- ✅ kubectl**
-
-**- ✅ Kubernetes Deployments**
-
-**- ✅ Kubernetes Services**
-
-**- ✅ NodePort**
-
-**- ✅ CI/CD automation**
-
-**- ✅ Containerized microservices**
-
-**- ✅ Deployment verification**
-
-
-
-**---**
-
-
-
-**## 📊 Project Architecture at a Glance**
-
-
-
-**```text**
-
-&#x20;                    **GitHub**
-
-&#x20;                       **│**
-
-&#x20;                       **▼**
-
-&#x20;                 **┌───────────┐**
-
-&#x20;                 **│  Jenkins  │**
-
-&#x20;                 **└─────┬─────┘**
-
-&#x20;                       **│**
-
-&#x20;         **┌─────────────┼─────────────┐**
-
-&#x20;         **│             │             │**
-
-&#x20;         **▼             ▼             ▼**
-
-&#x20;      **Maven        Docker Build   Docker Hub**
-
-&#x20;         **│             │             │**
-
-&#x20;         **└─────────────┼─────────────┘**
-
-&#x20;                       **│**
-
-&#x20;                       **▼**
-
-&#x20;                **Kubernetes**
-
-&#x20;                 **/ Minikube**
-
-&#x20;                       **│**
-
-&#x20;      **┌────────────────┼────────────────┐**
-
-&#x20;      **│                │                │**
-
-&#x20;      **▼                ▼                ▼**
-
-&#x20;  **👤 User          📦 Order         🔔 Notification**
-
-&#x20;  **:8081             :8082              :8083**
-
-&#x20;  **:30081            :30082             :30083**
-
-**```**
-
-
-
-**---**
-
-
-
-**## 📌 Project Highlights**
-
-
-
-**> \*\*End-to-end CI/CD:\*\* Source code is checked out from GitHub, built with Maven, containerized with Docker, pushed to Docker Hub, and deployed to Kubernetes through Jenkins.**
-
-
-
-**> \*\*Containerized Microservices:\*\* Three independent Spring Boot services are packaged as Docker images.**
-
-
-
-**> \*\*Kubernetes Deployment:\*\* Application workloads are deployed using Kubernetes Deployment and Service manifests.**
-
-
-
-**> \*\*Local Cloud-Native Environment:\*\* Minikube provides a local Kubernetes environment for development and deployment testing.**
-
-
-
-**> \*\*DevOps Automation:\*\* Jenkins coordinates the complete build, containerization, registry, deployment, and verification workflow.**
-
-
-
-**---**
-
-
-
-**## 👨‍💻 Author**
-
-
-
-**\*\*RS-cloud-intellipaat\*\***
-
-
-
-**GitHub repository:**
-
-
-
-**\*\*cloud-native-devops-platform\*\***
-
-
-
-**---**
-
-
-
-**## ⭐ Future Enhancements**
-
-
-
-**Possible next improvements:**
-
-
-
-**- \[ ] Add automated unit/integration tests**
-
-**- \[ ] Add SonarQube code-quality analysis**
-
-**- \[ ] Add Trivy container vulnerability scanning**
-
-**- \[ ] Add Jenkins webhook-based CI**
-
-**- \[ ] Add Kubernetes ConfigMaps and Secrets**
-
-**- \[ ] Add Ingress**
-
-**- \[ ] Add Helm charts**
-
-**- \[ ] Add Prometheus and Grafana monitoring**
-
-**- \[ ] Add centralized logging**
-
-**- \[ ] Deploy to AWS EKS**
-
-**- \[ ] Add separate Dev/Staging/Production environments**
-
-
-
-**---**
-
-
-
-**<p align="center">**
-
-&#x20; **<b>Built with Java • Spring Boot • Docker • Jenkins • Kubernetes</b>**
-
-**</p>**
-
-
-
+</div>
